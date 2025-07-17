@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException, Query
 from urllib.parse import urlparse
 import os
 import pymysql
+from dotenv import load_dotenv
+load_dotenv()
+
 
 app = FastAPI(title="KPI Test API")
 
