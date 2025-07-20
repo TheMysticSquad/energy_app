@@ -84,3 +84,81 @@ def get_kpis(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/filters/")
+def get_filters(employee_id: int = Query(..., description="Employee ID")):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # find employee & role
+        cur.execute("""SELECT * FROM employees WHERE employee_id=%s""", (employee_id,))
+        emp = cur.fetchone()
+
+        if not emp:
+            raise HTTPException(status_code=404, detail="Employee not found.")
+
+        result = {}
+
+        if emp['role'] == 'circle':
+            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM divisions WHERE CircleID=%s", (emp['circle_id'],))
+            result['divisions'] = cur.fetchall()
+
+            cur.execute("SELECT * FROM subdivisions WHERE CircleID=%s", (emp['circle_id'],))
+            result['sub_divisions'] = cur.fetchall()
+
+            cur.execute("SELECT * FROM sections WHERE CircleID=%s", (emp['circle_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'division':
+            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM subdivisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['sub_divisions'] = cur.fetchall()
+
+            cur.execute("SELECT * FROM sections WHERE DivisionID=%s", (emp['division_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'sub_division':
+            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sub_division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM sections WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'section':
+            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sub_division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM sections WHERE SectionID=%s", (emp['section_id'],))
+            result['section'] = cur.fetchone()
+
+        else:
+            raise HTTPException(status_code=400, detail="Invalid role.")
+
+        cur.close()
+        conn.close()
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
