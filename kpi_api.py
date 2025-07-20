@@ -101,55 +101,65 @@ def get_filters(employee_id: int = Query(..., description="Employee ID")):
         result = {}
 
         if emp['role'] == 'circle':
-            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
             result['circle'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM divisions WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("SELECT * FROM Divisions WHERE CircleID=%s", (emp['circle_id'],))
             result['divisions'] = cur.fetchall()
 
-            cur.execute("SELECT * FROM subdivisions WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("""
+                SELECT s.*
+                FROM Subdivisions s
+                JOIN Divisions d ON s.DivisionID = d.DivisionID
+                WHERE d.CircleID=%s
+            """, (emp['circle_id'],))
             result['sub_divisions'] = cur.fetchall()
 
-            cur.execute("SELECT * FROM sections WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("""
+                SELECT s.*
+                FROM Sections s
+                JOIN Divisions d ON s.DivisionID = d.DivisionID
+                WHERE d.CircleID=%s
+            """, (emp['circle_id'],))
             result['sections'] = cur.fetchall()
 
         elif emp['role'] == 'division':
-            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
             result['circle'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
             result['division'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM subdivisions WHERE DivisionID=%s", (emp['division_id'],))
+            cur.execute("SELECT * FROM Subdivisions WHERE DivisionID=%s", (emp['division_id'],))
             result['sub_divisions'] = cur.fetchall()
 
-            cur.execute("SELECT * FROM sections WHERE DivisionID=%s", (emp['division_id'],))
+            cur.execute("SELECT * FROM Sections WHERE DivisionID=%s", (emp['division_id'],))
             result['sections'] = cur.fetchall()
 
         elif emp['role'] == 'sub_division':
-            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
             result['circle'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
             result['division'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            cur.execute("SELECT * FROM Subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
             result['sub_division'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM sections WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            cur.execute("SELECT * FROM Sections WHERE SubdivisionID=%s", (emp['sub_division_id'],))
             result['sections'] = cur.fetchall()
 
         elif emp['role'] == 'section':
-            cur.execute("SELECT * FROM circles WHERE CircleID=%s", (emp['circle_id'],))
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
             result['circle'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM divisions WHERE DivisionID=%s", (emp['division_id'],))
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
             result['division'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            cur.execute("SELECT * FROM Subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
             result['sub_division'] = cur.fetchone()
 
-            cur.execute("SELECT * FROM sections WHERE SectionID=%s", (emp['section_id'],))
+            cur.execute("SELECT * FROM Sections WHERE SectionID=%s", (emp['section_id'],))
             result['section'] = cur.fetchone()
 
         else:
@@ -161,4 +171,3 @@ def get_filters(employee_id: int = Query(..., description="Employee ID")):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
