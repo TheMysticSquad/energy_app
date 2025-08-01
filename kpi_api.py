@@ -1,14 +1,26 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Body
+from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import urlparse
 import os
 import pymysql
 from dotenv import load_dotenv
+
+# Load environment variables
 load_dotenv()
 
-
+# Create FastAPI app
 app = FastAPI(title="KPI Test API")
 
-# Read from environment
+# Enable CORS to fix OPTIONS 405
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to ["http://localhost:3000"] for specific frontend
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow GET, POST, OPTIONS etc.
+    allow_headers=["*"],
+)
+
+# Read DB config from environment
 mysql_url = os.getenv("MYSQL_URL")
 parsed = urlparse(mysql_url)
 user = parsed.username
@@ -17,6 +29,7 @@ host = parsed.hostname
 port = parsed.port or 3306
 db = parsed.path.lstrip('/')
 
+# Function to connect to DB
 def get_connection():
     return pymysql.connect(
         host=host,
@@ -27,6 +40,40 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+# ===================== LOGIN API =====================
+@app.post("/login")
+def login(email: str = Body(...), password: str = Body(...)):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT l.employee_id, e.name, e.role
+            FROM login l
+            JOIN employees e ON l.employee_id = e.employee_id
+            WHERE l.email = %s 
+              AND l.password_hash = SHA2(%s, 256)
+        """, (email, password))
+        
+        user_data = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not user_data:
+            raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+        return {
+            "employee_id": user_data["employee_id"],
+            "name": user_data["name"],
+            "role": user_data["role"],
+            "message": "Login successful"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===================== KPI API =====================
 @app.get("/test/kpi/")
 def get_kpis(
     section_id: int = Query(..., description="Section ID"),
@@ -39,35 +86,30 @@ def get_kpis(
         conn = get_connection()
         cur = conn.cursor()
 
-        # service_connections
         cur.execute("""
             SELECT * FROM service_connections 
             WHERE section_id=%s AND year=%s AND month=%s
         """, (section_id, year, month))
         data['service_connections'] = cur.fetchone()
 
-        # metering
         cur.execute("""
             SELECT * FROM metering 
             WHERE section_id=%s AND year=%s AND month=%s
         """, (section_id, year, month))
         data['metering'] = cur.fetchone()
 
-        # billing
         cur.execute("""
             SELECT * FROM billing 
             WHERE section_id=%s AND year=%s AND month=%s
         """, (section_id, year, month))
         data['billing'] = cur.fetchone()
 
-        # collection
         cur.execute("""
             SELECT * FROM collection 
             WHERE section_id=%s AND year=%s AND month=%s
         """, (section_id, year, month))
         data['collection'] = cur.fetchone()
 
-        # disconnection_recovery
         cur.execute("""
             SELECT * FROM disconnection_recovery 
             WHERE section_id=%s AND year=%s AND month=%s
@@ -85,13 +127,14 @@ def get_kpis(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ===================== FILTERS API =====================
 @app.get("/filters/")
 def get_filters(employee_id: int = Query(..., description="Employee ID")):
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # find employee & role
         cur.execute("""SELECT * FROM employees WHERE employee_id=%s""", (employee_id,))
         emp = cur.fetchone()
 
