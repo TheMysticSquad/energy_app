@@ -215,9 +215,10 @@ def get_filters(employee_id: int = Query(..., description="Employee ID")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # ===================== Generic Trend API =====================
 # Define the list of allowed table names to prevent SQL injection
-ALLOWED_TREND_MODELS = [
+ALLOWED_MODELS = [
     "service_connections",
     "metering",
     "billing",
@@ -227,33 +228,30 @@ ALLOWED_TREND_MODELS = [
 
 @app.get("/trend/")
 def get_trend(
-    model: str = Query(..., description="The name of the KPI table (e.g., 'service_connections')"),
+    model: str = Query(..., description="The name of the table (e.g., 'service_connections')"),
     section_id: int = Query(..., description="Section ID"),
-    year: int = Query(..., description="Year"),
-    limit: int = Query(12, description="Number of months to return")
+    year: int = Query(..., description="Year")
 ):
     """
-    Returns a time series of KPI data for a given section and year,
-    based on the specified model.
+    Returns all raw data records for a given table, section, and year,
+    ordered chronologically.
     """
-    if model not in ALLOWED_TREND_MODELS:
-        raise HTTPException(status_code=400, detail=f"Invalid model specified. Allowed models are: {', '.join(ALLOWED_TREND_MODELS)}")
+    if model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Invalid model specified. Allowed models are: {', '.join(ALLOWED_MODELS)}")
 
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # Securely construct the SQL query using the validated model name
+        # Your query implemented with parameters
         query = f"""
-            SELECT `year`, `month`, COUNT(*) AS total_records
+            SELECT *
             FROM `{model}`
             WHERE section_id = %s AND `year` = %s
-            GROUP BY `year`, `month`
-            ORDER BY `year` DESC, `month` DESC
-            LIMIT %s
+            ORDER BY `year` ASC, `month` ASC;
         """
         
-        cur.execute(query, (section_id, year, limit))
+        cur.execute(query, (section_id, year))
         
         data = cur.fetchall()
         
@@ -261,9 +259,9 @@ def get_trend(
         conn.close()
         
         if not data:
-            raise HTTPException(status_code=404, detail=f"No trend data found for model '{model}' with the given parameters.")
+            raise HTTPException(status_code=404, detail=f"No data found for model '{model}' with the given parameters.")
 
         return data
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred while fetching trend data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while fetching data: {str(e)}")
