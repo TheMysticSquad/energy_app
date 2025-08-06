@@ -11,12 +11,12 @@ load_dotenv()
 # Create FastAPI app
 app = FastAPI(title="KPI Test API")
 
-# Enable CORS to fix OPTIONS 405
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to ["http://localhost:3000"] for specific frontend
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allow GET, POST, OPTIONS etc.
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 
@@ -40,7 +40,7 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# ===================== LOGIN API =====================
+# ===================== LOGIN API (UNCHANGED) =====================
 @app.post("/login")
 def login(email: str = Body(...), password: str = Body(...)):
     try:
@@ -72,64 +72,53 @@ def login(email: str = Body(...), password: str = Body(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ===================== Common Allowed Models =====================
+ALLOWED_MODELS = [
+    "service_connections",
+    "metering",
+    "billing",
+    "collection",
+    "disconnection_recovery",
+    "theft_management"  
+]
 
-# ===================== KPI API =====================
-@app.get("/test/kpi/")
-def get_kpis(
+# ===================== KPI API (Dynamic) =====================
+@app.get("/test/kpi")
+def get_kpi(
+    model: str = Query(..., description=f"Model name: {', '.join(ALLOWED_MODELS)}"),
     section_id: int = Query(..., description="Section ID"),
     year: int = Query(..., description="Year"),
     month: int = Query(..., description="Month (1-12)")
 ):
-    data = {}
+    if model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Invalid model. Allowed models: {', '.join(ALLOWED_MODELS)}")
 
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("""
-            SELECT * FROM service_connections 
-            WHERE section_id=%s AND year=%s AND month=%s
-        """, (section_id, year, month))
-        data['service_connections'] = cur.fetchone()
-
-        cur.execute("""
-            SELECT * FROM metering 
-            WHERE section_id=%s AND year=%s AND month=%s
-        """, (section_id, year, month))
-        data['metering'] = cur.fetchone()
-
-        cur.execute("""
-            SELECT * FROM billing 
-            WHERE section_id=%s AND year=%s AND month=%s
-        """, (section_id, year, month))
-        data['billing'] = cur.fetchone()
-
-        cur.execute("""
-            SELECT * FROM collection 
-            WHERE section_id=%s AND year=%s AND month=%s
-        """, (section_id, year, month))
-        data['collection'] = cur.fetchone()
-
-        cur.execute("""
-            SELECT * FROM disconnection_recovery 
-            WHERE section_id=%s AND year=%s AND month=%s
-        """, (section_id, year, month))
-        data['disconnection_recovery'] = cur.fetchone()
+        query = f"""
+            SELECT *
+            FROM `{model}`
+            WHERE section_id = %s AND `year` = %s AND `month` = %s
+        """
+        cur.execute(query, (section_id, year, month))
+        data = cur.fetchone()
 
         cur.close()
         conn.close()
 
-        if not any(data.values()):
-            raise HTTPException(status_code=404, detail="No KPI data found for given parameters.")
+        if not data:
+            raise HTTPException(status_code=404, detail=f"No KPI data found in {model} for given parameters.")
 
         return data
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error fetching KPI data: {str(e)}")
 
 
-# ===================== FILTERS API =====================
-@app.get("/filters/")
+# ===================== FILTERS API (NO TRAILING SLASH) =====================
+@app.get("/filters")
 def get_filters(employee_id: int = Query(..., description="Employee ID")):
     try:
         conn = get_connection()
@@ -216,34 +205,20 @@ def get_filters(employee_id: int = Query(..., description="Employee ID")):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ===================== Generic Trend API =====================
-# Define the list of allowed table names to prevent SQL injection
-ALLOWED_MODELS = [
-    "service_connections",
-    "metering",
-    "billing",
-    "collection",
-    "disconnection_recovery"
-]
-
-@app.get("/trend/")
+# ===================== Generic Trend API (NO TRAILING SLASH) =====================
+@app.get("/trend")
 def get_trend(
-    model: str = Query(..., description="The name of the table (e.g., 'service_connections')"),
+    model: str = Query(..., description="The name of the table"),
     section_id: int = Query(..., description="Section ID"),
     year: int = Query(..., description="Year")
 ):
-    """
-    Returns all raw data records for a given table, section, and year,
-    ordered chronologically.
-    """
     if model not in ALLOWED_MODELS:
-        raise HTTPException(status_code=400, detail=f"Invalid model specified. Allowed models are: {', '.join(ALLOWED_MODELS)}")
+        raise HTTPException(status_code=400, detail=f"Invalid model specified. Allowed models: {', '.join(ALLOWED_MODELS)}")
 
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # Your query implemented with parameters
         query = f"""
             SELECT *
             FROM `{model}`
@@ -252,7 +227,6 @@ def get_trend(
         """
         
         cur.execute(query, (section_id, year))
-        
         data = cur.fetchall()
         
         cur.close()
