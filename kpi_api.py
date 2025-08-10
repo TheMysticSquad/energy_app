@@ -127,21 +127,16 @@ def admin_login(email: str = Body(...), password: str = Body(...)):
             "role": "admin"
         })
 
-        # Return as HTTP-only cookie
-        response = JSONResponse(content={"message": "Admin login successful"})
-        response.set_cookie(
-            key="access_token",
-            value=token,
-            httponly=True,
-            secure=True,        # True in production (requires HTTPS)
-            samesite="Strict",  # or "Lax" if you need cross-site
-            max_age=JWT_EXPIRE_MINUTES * 60
-        )
-        return response
+        return {
+            "message": "Admin login successful",
+            "access_token": token,
+            "token_type": "bearer",
+            "employee_id": admin_data["employee_id"],
+            "role": "admin"
+        }
 
     finally:
         conn.close()
-
 
 # ---------------- KPI DATA ----------------
 @app.get("/test/kpi")
