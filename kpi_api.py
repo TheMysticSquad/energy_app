@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import os
 import pymysql
 from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
@@ -117,15 +118,30 @@ def admin_login(email: str = Body(...), password: str = Body(...)):
                 LIMIT 1
             """, (email, password))
             admin_data = cur.fetchone()
+
         if not admin_data or admin_data["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin access denied")
+
         token = create_access_token({
             "employee_id": admin_data["employee_id"],
             "role": "admin"
         })
-        return {"access_token": token, "token_type": "bearer"}
+
+        # Return as HTTP-only cookie
+        response = JSONResponse(content={"message": "Admin login successful"})
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            secure=True,        # True in production (requires HTTPS)
+            samesite="Strict",  # or "Lax" if you need cross-site
+            max_age=JWT_EXPIRE_MINUTES * 60
+        )
+        return response
+
     finally:
         conn.close()
+
 
 # ---------------- KPI DATA ----------------
 @app.get("/test/kpi")
