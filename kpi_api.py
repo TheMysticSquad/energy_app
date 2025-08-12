@@ -163,12 +163,46 @@ def get_filters(employee_id: int):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Get employee record
             cur.execute("SELECT * FROM employees WHERE employee_id=%s", (employee_id,))
             emp = cur.fetchone()
-        if not emp:
-            raise HTTPException(status_code=404, detail="Employee not found")
-        # (Keep your filter logic here — unchanged)
-        return emp
+            if not emp:
+                raise HTTPException(status_code=404, detail="Employee not found")
+
+            circle = None
+            divisions = []
+            sub_divisions = []
+            sections = []
+
+            # If employee has circle_id, fetch it
+            if emp.get("circle_id"):
+                cur.execute("SELECT CircleID, CircleName FROM circles WHERE CircleID=%s", (emp["circle_id"],))
+                circle = cur.fetchone()
+
+            # Fetch all divisions in that circle
+            if emp.get("circle_id"):
+                cur.execute("SELECT DivisionID, DivisionName FROM divisions WHERE CircleID=%s", (emp["circle_id"],))
+                divisions = cur.fetchall()
+
+            # Fetch subdivisions for those divisions
+            if divisions:
+                div_ids = [d["DivisionID"] for d in divisions]
+                cur.execute(f"SELECT SubdivisionID, SubdivisionName, DivisionID FROM subdivisions WHERE DivisionID IN ({','.join(['%s']*len(div_ids))})", div_ids)
+                sub_divisions = cur.fetchall()
+
+            # Fetch sections for those subdivisions
+            if sub_divisions:
+                sub_ids = [sd["SubdivisionID"] for sd in sub_divisions]
+                cur.execute(f"SELECT SectionID, SectionName, SubdivisionID FROM sections WHERE SubdivisionID IN ({','.join(['%s']*len(sub_ids))})", sub_ids)
+                sections = cur.fetchall()
+
+            return {
+                "circle": circle,
+                "divisions": divisions,
+                "sub_divisions": sub_divisions,
+                "sections": sections
+            }
+
     finally:
         conn.close()
 
