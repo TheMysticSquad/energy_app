@@ -158,53 +158,96 @@ def get_kpi(model: str, section_id: int, year: int, month: int):
         conn.close()
 
 # ---------------- FILTERS ----------------
-@app.get("/filters")
-def get_filters(employee_id: int):
-    conn = get_connection()
+
+# ===================== FILTERS API =====================
+@app.get("/filters/")
+def get_filters(employee_id: int = Query(..., description="Employee ID")):
     try:
-        with conn.cursor() as cur:
-            # Get employee record
-            cur.execute("SELECT * FROM employees WHERE employee_id=%s", (employee_id,))
-            emp = cur.fetchone()
-            if not emp:
-                raise HTTPException(status_code=404, detail="Employee not found")
+        conn = get_connection()
+        cur = conn.cursor()
 
-            circle = None
-            divisions = []
-            sub_divisions = []
-            sections = []
+        # Get employee details
+        cur.execute("""SELECT * FROM employees WHERE employee_id=%s""", (employee_id,))
+        emp = cur.fetchone()
 
-            # If employee has circle_id, fetch it
-            if emp.get("circle_id"):
-                cur.execute("SELECT CircleID, CircleName FROM circles WHERE CircleID=%s", (emp["circle_id"],))
-                circle = cur.fetchone()
+        if not emp:
+            raise HTTPException(status_code=404, detail="Employee not found.")
 
-            # Fetch all divisions in that circle
-            if emp.get("circle_id"):
-                cur.execute("SELECT DivisionID, DivisionName FROM divisions WHERE CircleID=%s", (emp["circle_id"],))
-                divisions = cur.fetchall()
+        result = {}
 
-            # Fetch subdivisions for those divisions
-            if divisions:
-                div_ids = [d["DivisionID"] for d in divisions]
-                cur.execute(f"SELECT SubdivisionID, SubdivisionName, DivisionID FROM subdivisions WHERE DivisionID IN ({','.join(['%s']*len(div_ids))})", div_ids)
-                sub_divisions = cur.fetchall()
+        # Role-based filtering
+        if emp['role'] == 'circle':
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
 
-            # Fetch sections for those subdivisions
-            if sub_divisions:
-                sub_ids = [sd["SubdivisionID"] for sd in sub_divisions]
-                cur.execute(f"SELECT SectionID, SectionName, SubdivisionID FROM sections WHERE SubdivisionID IN ({','.join(['%s']*len(sub_ids))})", sub_ids)
-                sections = cur.fetchall()
+            cur.execute("SELECT * FROM Divisions WHERE CircleID=%s", (emp['circle_id'],))
+            result['divisions'] = cur.fetchall()
 
-            return {
-                "circle": circle,
-                "divisions": divisions,
-                "sub_divisions": sub_divisions,
-                "sections": sections
-            }
+            cur.execute("""
+                SELECT s.*
+                FROM Subdivisions s
+                JOIN Divisions d ON s.DivisionID = d.DivisionID
+                WHERE d.CircleID=%s
+            """, (emp['circle_id'],))
+            result['sub_divisions'] = cur.fetchall()
 
-    finally:
+            cur.execute("""
+                SELECT s.*
+                FROM Sections s
+                JOIN Divisions d ON s.DivisionID = d.DivisionID
+                WHERE d.CircleID=%s
+            """, (emp['circle_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'division':
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Subdivisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['sub_divisions'] = cur.fetchall()
+
+            cur.execute("SELECT * FROM Sections WHERE DivisionID=%s", (emp['division_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'sub_division':
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sub_division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Sections WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sections'] = cur.fetchall()
+
+        elif emp['role'] == 'section':
+            cur.execute("SELECT * FROM Circles WHERE CircleID=%s", (emp['circle_id'],))
+            result['circle'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Divisions WHERE DivisionID=%s", (emp['division_id'],))
+            result['division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Subdivisions WHERE SubdivisionID=%s", (emp['sub_division_id'],))
+            result['sub_division'] = cur.fetchone()
+
+            cur.execute("SELECT * FROM Sections WHERE SectionID=%s", (emp['section_id'],))
+            result['section'] = cur.fetchone()
+
+        else:
+            raise HTTPException(status_code=400, detail="Invalid role.")
+
+        cur.close()
         conn.close()
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ---------------- ADMIN USER MGMT ----------------
 @app.get("/admin/users")
