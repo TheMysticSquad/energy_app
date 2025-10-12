@@ -1,4 +1,4 @@
-# prepaid_module_v2 - logic of preapdid
+# prepaid_module_v2.py - Prepaid Module Logic
 
 from datetime import datetime
 from typing import List
@@ -52,43 +52,43 @@ class BillingLogic:
     def __init__(self, consumer):
         self.consumer = consumer
 
-def process_consumption(self, kwh_used, tariff: TariffPlan, timestamp=None):
-    """
-    Process a consumption record for a consumer.
-    If timestamp is provided, use it; otherwise, use current time.
-    """
-    if timestamp is None:
-        timestamp = datetime.now()
-    balance_before = self.consumer.balance
+    def process_consumption(self, kwh_used, tariff: TariffPlan, timestamp=None):
+        """
+        Process a consumption record for a consumer.
+        If timestamp is provided, use it; otherwise, use current time.
+        """
+        if timestamp is None:
+            timestamp = datetime.now()
+        balance_before = self.consumer.balance
 
-    # Subsidy / free units calculation
-    subsidy_units = min(kwh_used, tariff.subsidy_units)
-    non_subsidy_units = kwh_used - subsidy_units
-    energy_charge_subsidy = subsidy_units * tariff.rate_per_kwh * (1 - tariff.subsidy_rate)
-    energy_charge_normal = non_subsidy_units * tariff.rate_per_kwh
-    energy_charge_total = energy_charge_subsidy + energy_charge_normal
+        # Subsidy / free units calculation
+        subsidy_units = min(kwh_used, tariff.subsidy_units)
+        non_subsidy_units = kwh_used - subsidy_units
+        energy_charge_subsidy = subsidy_units * tariff.rate_per_kwh * (1 - tariff.subsidy_rate)
+        energy_charge_normal = non_subsidy_units * tariff.rate_per_kwh
+        energy_charge_total = energy_charge_subsidy + energy_charge_normal
 
-    fixed_charge = tariff.fixed_charge_daily
-    total_deduction = energy_charge_total + fixed_charge
-    balance_after = balance_before - total_deduction
-    self.consumer.balance = balance_after
+        fixed_charge = tariff.fixed_charge_daily
+        total_deduction = energy_charge_total + fixed_charge
+        balance_after = balance_before - total_deduction
+        self.consumer.balance = balance_after
 
-    # Record consumption
-    self.consumer.consumption_records.append(
-        ConsumptionRecord(
-            timestamp, kwh_used, subsidy_units, energy_charge_total,
-            fixed_charge, total_deduction, balance_before, balance_after
+        # Record consumption
+        self.consumer.consumption_records.append(
+            ConsumptionRecord(
+                timestamp, kwh_used, subsidy_units, energy_charge_total,
+                fixed_charge, total_deduction, balance_before, balance_after
+            )
         )
-    )
 
-    # Low balance alert
-    if self.consumer.balance <= tariff.low_balance_threshold:
-        self.consumer.alerts.append(Alert(timestamp, "LOW_BALANCE", f"Low balance! {self.consumer.balance:.2f}"))
+        # Low balance alert
+        if self.consumer.balance <= tariff.low_balance_threshold:
+            self.consumer.alerts.append(Alert(timestamp, "LOW_BALANCE", f"Low balance! ₹{self.consumer.balance:.2f}"))
 
-    # Disconnection
-    if self.consumer.balance <= 0 and self.consumer.status != "DISCONNECTED":
-        self.consumer.status = "DISCONNECTED"
-        print(f"[{timestamp}] Consumer {self.consumer.consumer_id} DISCONNECTED due to zero balance.")
+        # Disconnection
+        if self.consumer.balance <= 0 and self.consumer.status != "DISCONNECTED":
+            self.consumer.status = "DISCONNECTED"
+            print(f"[{timestamp}] Consumer {self.consumer.consumer_id} DISCONNECTED due to zero balance.")
 
     def recharge(self, amount, voucher_code=None):
         timestamp = datetime.now()
