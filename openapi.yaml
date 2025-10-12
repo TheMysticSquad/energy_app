@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: NIS ↔ AMISP Disconnection-Reconnection API
+  version: 1.0.0
+
+paths:
+  /nsc/disconnect:
+    post:
+      summary: Trigger disconnection command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisconnectRequest"
+      responses:
+        "200":
+          description: Disconnection initiated
+
+  /nsc/callback:
+    post:
+      summary: Callback from AMISP to NSC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallbackPayload"
+      responses:
+        "200":
+          description: Callback acknowledged
+
+components:
+  schemas:
+    DisconnectRequest:
+      type: object
+      properties:
+        consumer_id:
+          type: string
+        request_id:
+          type: string
+        action:
+          type: string
+          enum: [DISCONNECT, RECONNECT]
+    CallbackPayload:
+      type: object
+      properties:
+        request_id:
+          type: string
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+        message:
+          type: string

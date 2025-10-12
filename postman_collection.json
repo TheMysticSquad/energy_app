@@ -1,0 +1,21 @@
+{
+  "info": {
+    "name": "NIS-AMISP API Tests",
+    "_postman_id": "nis-amisp-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Trigger Disconnection",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"consumer_id\": \"C12345\", \"request_id\": \"REQ001\", \"action\": \"DISCONNECT\"}"
+        },
+        "url": "{{base_url}}/nsc/disconnect"
+      }
+    }
+  ]
+}
