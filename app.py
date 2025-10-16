@@ -9,6 +9,7 @@ st.set_page_config(
     page_icon="⚡",
     layout="wide"
 )
+st.image("assets/logo.png", width=260, caption="Smart Energy Management")
 
 # -----------------------------
 # HEADER SECTION
