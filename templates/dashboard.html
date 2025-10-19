@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utility CIS - Operations Dashboard</title>
+    <style>
+        /* * IMPORTANT: This section should contain ALL the CSS 
+         * (variables, reset, header, button, module-grid, and footer styles) 
+         * copied from your original HTML/CSS setup. 
+         */
+        
+        :root {
+            --primary-color: #007bff; /* Blue */
+            --secondary-color: #6c757d; /* Gray */
+            --text-dark: #343a40;
+            --bg-light: #f8f9fa;
+            --padding-base: 1.5rem;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-dark);
+            background-color: white;
+            line-height: 1.6;
+        }
+
+        /* --- Header Styling --- */
+        .utility-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem var(--padding-base);
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-logo .logo-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .login-details {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background-color: var(--bg-light);
+            font-size: 0.95rem;
+        }
+
+        .login-details p { margin: 0; margin-right: 1rem; color: var(--text-dark); }
+        .login-details a { text-decoration: none; color: var(--primary-color); font-weight: 600; }
+        .login-details a:hover { text-decoration: underline; }
+
+
+        /* --- Dashboard Introduction Styling --- */
+        .dashboard-intro {
+            padding: 4rem var(--padding-base) 2rem;
+            background-color: var(--bg-light);
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .dashboard-intro h1 {
+            font-size: 2.8rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+        
+        .dashboard-intro p {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-top: 0.5rem;
+        }
+
+        /* --- Modules Grid Styling --- */
+        .modules-section {
+            padding: 3rem var(--padding-base);
+            text-align: center;
+            background-color: #ffffff;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .module-card {
+            padding: 2.5rem;
+            background-color: #f0f8ff;
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+            text-decoration: none;
+            display: block;
+        }
+
+        .module-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 123, 255, 0.2);
+            background-color: #e0f2ff;
+        }
+
+        .module-card h3 {
+            color: var(--text-dark);
+            margin: 0.5rem 0;
+            font-size: 1.5rem;
+        }
+        
+        .module-card p {
+            color: #495057;
+            font-size: 0.95rem;
+        }
+        
+        .module-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* --- Footer Styling --- */
+        .utility-footer {
+            padding: 2rem var(--padding-base);
+            background-color: var(--text-dark);
+            color: white;
+            text-align: center;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="utility-header">
+        <a href="/dashboard" class="header-logo">
+            <span class="logo-text">⚡ Utility CIS</span>
+        </a>
+        
+        <div class="login-details">
+            <p>Welcome, <strong id="username-display">System Operator</strong></p>
+            <a href="/" onclick="localStorage.removeItem('isLoggedIn'); localStorage.removeItem('username');">Logout</a>
+        </div>
+    </header>
+
+    <main class="dashboard-content">
+        <section class="dashboard-intro">
+            <h1>Core Operations Modules</h1>
+            <p>Select a module to perform system processes and customer management tasks.</p>
+        </section>
+
+        <section id="modules" class="modules-section">
+            <div class="module-grid">
+                
+                <a href="/service/new" class="module-card">
+                    <span class="module-icon">🆕</span>
+                    <h3>New Service Connection</h3>
+                    <p>Process applications, site surveys, and finalize new customer connections.</p>
+                </a>
+                
+                <a href="/metering/readings" class="module-card">
+                    <span class="module-icon">📏</span>
+                    <h3>Metering & Readings</h3>
+                    <p>Manual entry, remote reading retrieval, and smart meter data management.</p>
+                </a>
+                
+                <a href="/billing/run" class="module-card">
+                    <span class="module-icon">💰</span>
+                    <h3>Billing & Invoicing</h3>
+                    <p>Run billing jobs, apply tariffs, and generate monthly customer invoices.</p>
+                </a>
+                
+                <a href="/disconnection/control" class="module-card">
+                    <span class="module-icon">🔌</span>
+                    <h3>Disconnection/Reconnection</h3>
+                    <p>Issue remote service control commands and manage service order queue.</p>
+                </a>
+                
+                <a href="/theft/log" class="module-card">
+                    <span class="module-icon">🚨</span>
+                    <h3>Theft & Fraud Management</h3>
+                    <p>Log incidents, schedule investigations, and track status and resolution.</p>
+                </a>
+                
+                <a href="/consumer/search" class="module-card">
+                    <span class="module-icon">🏠</span>
+                    <h3>Consumer Management</h3>
+                    <p>Search accounts, view balances, update contact info, and process recharges.</p>
+                </a>
+                
+                <a href="/system/admin" class="module-card">
+                    <span class="module-icon">⚙️</span>
+                    <h3>System Administration</h3>
+                    <p>Audit logs, user access control, and master data management.</p>
+                </a>
+                
+                <a href="/reports/generate" class="module-card">
+                    <span class="module-icon">📊</span>
+                    <h3>Reporting & Analytics</h3>
+                    <p>Generate financial summaries, consumption reports, and operational metrics.</p>
+                </a>
+                
+            </div>
+        </section>
+    </main>
+
+    <footer class="utility-footer">
+        <p>&copy; 2024 Utility CIS. All rights reserved. | Built with FastAPI & HTML</p>
+    </footer>
+
+</body>
+</html>

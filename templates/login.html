@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utility CIS - System Login (DEMO)</title>
+    <style>
+        /* Basic Reset and Variables - Consistent with Dashboard */
+        :root {
+            --primary-color: #007bff; /* Blue */
+            --secondary-color: #6c757d; /* Gray */
+            --text-dark: #343a40;
+            --bg-light: #f8f9fa;
+            --padding-base: 1.5rem;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-dark);
+            /* Set a background color consistent with the dashboard's neutral base */
+            background-color: var(--bg-light); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* --- Login Card Styling (Enhanced for professionalism) --- */
+        .login-card {
+            background-color: white;
+            padding: 3rem; /* Slightly more padding for space */
+            border-radius: 12px; /* Smoother corners */
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15); /* Stronger shadow for depth */
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            border-top: 5px solid var(--primary-color); /* A visual element tying it to the primary color */
+        }
+
+        .login-card h2 {
+            font-size: 2.2rem;
+            color: var(--text-dark); /* Use dark text for heading */
+            margin-bottom: 0.5rem;
+        }
+
+        .login-card h2::after {
+            content: 'CIS';
+            display: block;
+            font-size: 1rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+        }
+
+        /* --- Form Elements (Consistent with dashboard buttons/inputs) --- */
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--secondary-color);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        .btn-login {
+            /* Matches .btn-primary style from dashboard */
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+            margin-top: 0.5rem;
+        }
+
+        .btn-login:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        #login-message {
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+        
+        /* --- Disclaimer Styling (Modified for better contrast/professionalism) --- */
+        .disclaimer {
+            background-color: #f0f8ff; /* Light blue background consistent with module cards */
+            color: var(--text-dark); /* Darker text */
+            border: 1px solid var(--primary-color); /* Primary color border */
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+        .disclaimer strong {
+            color: var(--primary-color); /* Highlight text in primary color */
+            font-weight: 700;
+        }
+        .disclaimer code {
+            background-color: #e9ecef;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>Utility CIS</h2>
+        
+        <div class="disclaimer">
+            <p style="margin: 0 0 0.75rem 0; font-weight: 700;">
+                ⚠️ DEMO ACCESS ONLY
+            </p>
+            <p style="margin: 0;">
+                This system is built for demonstration purposes. Use the following credentials:
+            </p>
+            <p style="margin: 0.75rem 0 0 0;">
+                <strong>Username:</strong> <code>admin</code> | 
+                <strong>Password:</strong> <code>12345</code>
+            </p>
+        </div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">System Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">System Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-login">Log In to Dashboard</button>
+            <p id="login-message"></p>
+        </form>
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+
+</body>
+</html>

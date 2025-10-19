@@ -1,12 +1,12 @@
 # utility_api_server.py
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date
 import uvicorn
-from db_manager import DatabaseManager  # Your existing DB manager
+from database_manager import DatabaseManager  # Your existing DB manager
 
-app = FastAPI(title="Utility API Server", version="1.0")
+router = APIRouter(tags=["API Operations"])
 
 db = DatabaseManager()
 
@@ -48,7 +48,7 @@ def verify_vendor_api_key(x_api_key: str = Header(...)):
 # -----------------------------
 # Consumer Info Endpoint
 # -----------------------------
-@app.get("/consumer/{consumer_id}")
+@router.get("/consumer/{consumer_id}")
 def get_consumer_info(consumer_id: str, vendor=Depends(verify_vendor_api_key)):
     consumer = db.get_consumer_by_id(consumer_id)
     if not consumer:
@@ -63,7 +63,7 @@ def get_consumer_info(consumer_id: str, vendor=Depends(verify_vendor_api_key)):
 # -----------------------------
 # Push Meter Reading Endpoint
 # -----------------------------
-@app.post("/push-meter-reading")
+@router.post("/push-meter-reading")
 def push_meter_reading(payload: PushMeterReadingRequest, vendor=Depends(verify_vendor_api_key)):
     for reading in payload.readings:
         db.insert_meter_reading(reading.meter_id, reading.reading_datetime, reading.kwh)
@@ -72,7 +72,7 @@ def push_meter_reading(payload: PushMeterReadingRequest, vendor=Depends(verify_v
 # -----------------------------
 # Issue Meter Command Endpoint
 # -----------------------------
-@app.post("/issue-meter-command")
+@router.post("/issue-meter-command")
 def issue_meter_command(payload: MeterCommandRequest, vendor=Depends(verify_vendor_api_key)):
     command_id = db.insert_meter_command(payload.meter_id, payload.command_type)
     # Optional: trigger actual vendor API call asynchronously
@@ -81,7 +81,7 @@ def issue_meter_command(payload: MeterCommandRequest, vendor=Depends(verify_vend
 # -----------------------------
 # Get Meter Command Status
 # -----------------------------
-@app.get("/meter-command/{command_id}")
+@router.get("/meter-command/{command_id}")
 def get_meter_command_status(command_id: int, vendor=Depends(verify_vendor_api_key)):
     command = db.get_meter_command(command_id)
     if not command:
@@ -95,7 +95,7 @@ def get_meter_command_status(command_id: int, vendor=Depends(verify_vendor_api_k
 # -----------------------------
 # Process Recharge Endpoint
 # -----------------------------
-@app.post("/process-recharge")
+@router.post("/process-recharge")
 def process_recharge(payload: RechargeRequest, vendor=Depends(verify_vendor_api_key)):
     consumer = db.get_consumer_by_id(payload.consumer_id)
     if not consumer:
@@ -107,7 +107,7 @@ def process_recharge(payload: RechargeRequest, vendor=Depends(verify_vendor_api_
 # -----------------------------
 # Daily Billing Job
 # -----------------------------
-@app.post("/daily-billing-job")
+@router.post("/daily-billing-job")
 def run_daily_billing(payload: DailyBillingRequest, vendor=Depends(verify_vendor_api_key)):
     total, success, failed = db.run_daily_billing(payload.billing_date)
     return {
@@ -121,7 +121,7 @@ def run_daily_billing(payload: DailyBillingRequest, vendor=Depends(verify_vendor
 # -----------------------------
 # Monthly Invoice Generation
 # -----------------------------
-@app.post("/generate-invoice")
+@router.post("/generate-invoice")
 def generate_invoice(month: str, vendor=Depends(verify_vendor_api_key)):
     invoices = db.generate_monthly_invoices(month)
     return {"status": "success", "total_invoices": len(invoices)}
@@ -129,7 +129,7 @@ def generate_invoice(month: str, vendor=Depends(verify_vendor_api_key)):
 # -----------------------------
 # Alerts
 # -----------------------------
-@app.get("/alerts")
+@router.get("/alerts")
 def get_alerts(vendor=Depends(verify_vendor_api_key)):
     alerts = db.get_low_balance_alerts()
     return {"alerts": alerts}
@@ -137,7 +137,7 @@ def get_alerts(vendor=Depends(verify_vendor_api_key)):
 # -----------------------------
 # System Status
 # -----------------------------
-@app.get("/status")
+@router.get("/status")
 def system_status():
     return {
         "uptime": "Operational",
@@ -145,8 +145,3 @@ def system_status():
         "last_daily_billing": db.get_last_daily_billing_date()
     }
 
-# -----------------------------
-# Run Server
-# -----------------------------
-if __name__ == "__main__":
-    uvicorn.run("utility_api_server:app", host="0.0.0.0", port=8000, reload=True)
