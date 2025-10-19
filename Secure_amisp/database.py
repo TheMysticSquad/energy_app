@@ -1,0 +1,114 @@
+# database.py
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import datetime
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# ---------------------------------------------------------------------
+# --- Configuration (Securely loaded from .env) ---
+# ---------------------------------------------------------------------
+
+# Retrieve the URL from the environment variable (read from .env file)
+SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
+
+# Ensure the URL was loaded successfully
+if not SQLALCHEMY_DATABASE_URL:
+    raise ValueError("SQLALCHEMY_DATABASE_URL not found in environment variables or .env file.")
+
+# SQLAlchemy Engine
+# The Aiven SSL requirement (sslmode=require) is contained within the URL string.
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True # Recommended for cloud databases
+)
+
+# Base for all models
+Base = declarative_base()
+
+# Local Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# ---------------------------------------------------------------------
+
+
+# Dependency to get the DB Session (for Flask/FastAPI)
+def get_db():
+    db = SessionLocal()
+    try:
+        # Flask/FastAPI will use this generator
+        yield db
+    finally:
+        db.close()
+
+# --- Utility DB SQLAlchemy Models (PostgreSQL compatible types) ---
+
+class Consumer(Base):
+    __tablename__ = "consumers"
+    consumer_id = Column(String(50), primary_key=True)
+    name = Column(String(100))
+    address = Column(String(255))
+    balance = Column(Float, default=0.0)
+    status = Column(String(20), default="ACTIVE")
+
+class Meter(Base):
+    __tablename__ = "meters"
+    meter_id = Column(String(50), primary_key=True)
+    consumer_id = Column(String(50), ForeignKey("consumers.consumer_id"))
+    install_date = Column(DateTime)
+    status = Column(String(20), default="PENDING_INSTALL")
+
+class MeterReading(Base):
+    __tablename__ = "meter_readings"
+    id = Column(Integer, primary_key=True, index=True) 
+    meter_id = Column(String(50), ForeignKey("meters.meter_id"))
+    reading_datetime = Column(DateTime, default=datetime.datetime.utcnow)
+    kwh = Column(Float)
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    consumer_id = Column(String(50), ForeignKey("consumers.consumer_id"))
+    amount = Column(Float)
+    transaction_ref = Column(String(100), unique=True)
+    payment_date = Column(DateTime, default=datetime.datetime.utcnow)
+
+class VendorApiKey(Base):
+    __tablename__ = "vendor_api_keys"
+    vendor_id = Column(String(20), primary_key=True)
+    api_key_hash = Column(String(255))
+    is_active = Column(Boolean, default=True)
+
+class VendorAuditLog(Base):
+    __tablename__ = "vendor_audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    vendor_id = Column(String(20))
+    endpoint = Column(String(100))
+    request_data = Column(String(2048)) 
+    response_status = Column(Integer)
+    log_datetime = Column(DateTime, default=datetime.datetime.utcnow)
+    
+class MeterCommand(Base):
+    """
+    NEW: Tracks commands issued to meters (e.g., DISCONNECT, RECONNECT).
+    Required by the /api/meter-command and /api/command-status endpoints.
+    """
+    __tablename__ = "meter_commands"
+    id = Column(Integer, primary_key=True, index=True)
+    meter_id = Column(String(50), ForeignKey("meters.meter_id"))
+    command_type = Column(String(50))
+    status = Column(String(20), default="PENDING") # PENDING, SENT, SUCCESS, FAILED
+    command_datetime = Column(DateTime, default=datetime.datetime.utcnow)
+    response_message = Column(String(255), nullable=True)
+
+
+# --- Table Creation Logic ---
+if __name__ == "__main__":
+    # This block allows you to run 'python database.py' to initialize the database schema.
+    # checkfirst=True ensures that tables are only created if they do not already exist.
+    print("Attempting to create/verify database tables...")
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print("Database table creation/verification complete.")
