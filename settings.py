@@ -71,4 +71,6 @@ TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
 TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER", default="")
 
 # Static
-STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "frontend" / "build" / "static"]
+STATIC_ROOT = BASE_DIR / "static"
+
