@@ -6,9 +6,7 @@ uvicorn==0.30.0
 mysql-connector-python==9.0.0
 sqlalchemy==2.0.36
 
-# Data validation & models
-pydantic==2.9.0
-pydantic-core==2.23.4
+
 
 # Utility and background jobs
 python-dotenv==1.0.1
