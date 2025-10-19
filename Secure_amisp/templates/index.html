@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMISP Vendor Simulator Frontend</title>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+    <style>
+        /* Simple CSS for the UI */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .tab-menu { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 20px; }
+        .tab-menu button { 
+            padding: 10px 20px; border: none; background: #eee; cursor: pointer; 
+            border-top-left-radius: 5px; border-top-right-radius: 5px; 
+            margin-right: 5px; transition: background 0.3s;
+        }
+        .tab-menu button.active { background: #007bff; color: white; }
+        .tab-content { display: none; padding: 15px 0; }
+        .tab-content.active { display: block; }
+        form { background: #f9f9f9; padding: 20px; border-radius: 6px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], input[type="number"], input[type="datetime-local"] { 
+            width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; 
+            border-radius: 4px; box-sizing: border-box; 
+        }
+        button[type="submit"] { 
+            background-color: #28a745; color: white; padding: 10px 20px; 
+            border: none; border-radius: 4px; cursor: pointer; margin-top: 20px;
+        }
+        .response-area, .audit-area { 
+            margin-top: 20px; padding: 15px; border: 1px solid #ccc; 
+            background: #f1f1f1; border-radius: 4px; white-space: pre-wrap;
+        }
+        .audit-area { margin-top: 40px; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AMISP Vendor Simulator Interface</h1>
+        <p>Backend URL: <code>http://127.0.0.1:8000/api/</code></p>
+        
+        <div class="tab-menu">
+            <button class="tab-button active" onclick="openTab('install-meter')">1. Meter Installation</button>
+            <button class="tab-button" onclick="openTab('upload-reading')">2. Upload Reading</button>
+            <button class="tab-button" onclick="openTab('recharge')">3. Process Recharge</button>
+            <button class="tab-button" onclick="openTab('command')">4. Issue Command</button>
+        </div>
+
+        <div id="install-meter" class="tab-content active">
+            <h2>Meter Installation (`POST /api/install-meter`)</h2>
+            <form id="installForm">
+                <label for="install_vendor_id">Vendor ID (e.g., METER_CO_001):</label>
+                <input type="text" id="install_vendor_id" required value="METER_CO_001">
+                
+                <label for="install_consumer_id">Consumer ID (e.g., C12345):</label>
+                <input type="text" id="install_consumer_id" required>
+                
+                <label for="install_meter_id">Meter ID (e.g., MTR1001):</label>
+                <input type="text" id="install_meter_id" required>
+                
+                <label for="install_date">Installation Date/Time:</label>
+                <input type="datetime-local" id="install_date" required>
+                
+                <button type="submit">Install Meter</button>
+            </form>
+            <div id="installResponse" class="response-area">Response will appear here.</div>
+        </div>
+
+        <div id="upload-reading" class="tab-content">
+            <h2>Upload Reading (`POST /api/upload-reading`)</h2>
+            <form id="readingForm">
+                <label for="reading_vendor_id">Vendor ID (e.g., METER_CO_001):</label>
+                <input type="text" id="reading_vendor_id" required value="METER_CO_001">
+                
+                <label for="reading_meter_id">Meter ID:</label>
+                <input type="text" id="reading_meter_id" required>
+                
+                <label for="reading_datetime">Reading Date/Time:</label>
+                <input type="datetime-local" id="reading_datetime" required>
+                
+                <label for="reading_kwh">KWH Reading (e.g., 5.75):</label>
+                <input type="number" id="reading_kwh" step="0.01" required>
+                
+                <button type="submit">Upload Reading</button>
+            </form>
+            <div id="readingResponse" class="response-area">Response will appear here.</div>
+        </div>
+
+        <div id="recharge" class="tab-content">
+            <h2>Process Recharge (`POST /api/recharge`)</h2>
+            <form id="rechargeForm">
+                <label for="recharge_vendor_id">Vendor ID (e.g., METER_CO_001):</label>
+                <input type="text" id="recharge_vendor_id" required value="METER_CO_001">
+                
+                <label for="recharge_consumer_id">Consumer ID:</label>
+                <input type="text" id="recharge_consumer_id" required>
+                
+                <label for="recharge_amount">Amount:</label>
+                <input type="number" id="recharge_amount" step="0.01" required>
+                
+                <label for="recharge_txn_ref">Transaction Ref (Must be Unique!):</label>
+                <input type="text" id="recharge_txn_ref" required>
+                
+                <button type="submit">Process Recharge</button>
+            </form>
+            <div id="rechargeResponse" class="response-area">Response will appear here.</div>
+        </div>
+
+        <div id="command" class="tab-content">
+            <h2>Issue Command (`POST /api/meter-command`)</h2>
+            <form id="commandForm">
+                <label for="command_vendor_id">Vendor ID (e.g., METER_CO_001):</label>
+                <input type="text" id="command_vendor_id" required value="METER_CO_001">
+                
+                <label for="command_meter_id">Meter ID:</label>
+                <input type="text" id="command_meter_id" required>
+                
+                <label for="command_type">Command Type (e.g., DISCONNECT):</label>
+                <input type="text" id="command_type" required>
+                
+                <button type="submit">Issue Command</button>
+            </form>
+            <div id="commandResponse" class="response-area">Response will appear here.</div>
+        </div>
+
+
+        <div class="audit-area">
+            <h2>Audit Log / Last Request Details</h2>
+            <p>The **Flask backend** logs all requests in the <code>vendor_audit_logs</code> table. Details of the last request sent from this frontend are shown below.</p>
+            <div id="auditLog" class="response-area">
+                Last Request URL: <span id="lastUrl">N/A</span><br>
+                Last Request Headers: <span id="lastHeaders">N/A</span><br>
+                Last Request Body: <span id="lastBody">N/A</span><br>
+                Last Response Status: <span id="lastStatus">N/A</span><br>
+                Last Response Data: <pre id="lastData">N/A</pre>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
