@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------------------------------------------------
-# --- Configuration (Securely loaded from .env) ---
+# --- Configuration & Engine Initialization ---
 # ---------------------------------------------------------------------
 
 # Retrieve the URL from the environment variable (read from .env file)
@@ -20,8 +20,33 @@ SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     raise ValueError("SQLALCHEMY_DATABASE_URL not found in environment variables or .env file.")
 
+# 🎯 CRITICAL FIX: FORCE THE USE OF THE ROBUST 'psycopg' DRIVER 
+# This handles the scenario where the env variable is set to 'postgresql+psycopg2' or 'postgresql+asyncpg'
+if SQLALCHEMY_DATABASE_URL.startswith("postgres"):
+    # Strip any existing dialect and force the use of the 'psycopg' dialect
+    # Example: 'postgres+psycopg2://...' -> 'postgresql+psycopg://...'
+    # Example: 'postgresql://...' -> 'postgresql+psycopg://...'
+    
+    # Standardize the protocol to 'postgresql' for consistency with SQLAlchemy 2.x conventions
+    updated_url = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Remove any existing dialect (+psycopg2, +asyncpg) if present
+    if "+" in updated_url:
+        base_url = updated_url.split("://", 1)
+        # Check if a dialect is specified (e.g., postgresql+psycopg2)
+        if base_url[0].count('+') > 0:
+            # Reconstruct the URL using only the base protocol and the new dialect
+            protocol_prefix = base_url[0].split('+')[0]
+            SQLALCHEMY_DATABASE_URL = f"{protocol_prefix}+psycopg://{base_url[1]}"
+        else:
+            # If it was just 'postgresql://', append the new dialect
+            SQLALCHEMY_DATABASE_URL = f"{base_url[0]}+psycopg://{base_url[1]}"
+    else:
+         # Fallback if no specific protocol (should not happen with Aiven URL)
+         SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+            
 # SQLAlchemy Engine
-# The Aiven SSL requirement (sslmode=require) is contained within the URL string.
+# The Aiven SSL requirement (sslmode=require) is handled, and we now use the 'psycopg' driver.
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     pool_pre_ping=True # Recommended for cloud databases
