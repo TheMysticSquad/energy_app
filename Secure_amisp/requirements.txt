@@ -1,6 +1,6 @@
 Flask==3.0.3
 SQLAlchemy==2.0.30
-psycopg[binary]==3.1.18
+mysql-connector-python
 pydantic==2.7.1
 python-dotenv==1.0.1
 uvicorn==0.30.1

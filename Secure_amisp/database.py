@@ -1,4 +1,4 @@
-# database.py
+# database.py - Updated for MySQL Connection
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -10,46 +10,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------------------------------------------------
-# --- Configuration & Engine Initialization ---
+# --- Configuration & Engine Initialization for MySQL ---
 # ---------------------------------------------------------------------
 
-# Retrieve the URL from the environment variable (read from .env file)
-SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
+# Retrieve the URL from the environment variable (now named 'DB' for MySQL)
+DB_URL = os.getenv("DB")
 
 # Ensure the URL was loaded successfully
-if not SQLALCHEMY_DATABASE_URL:
-    raise ValueError("SQLALCHEMY_DATABASE_URL not found in environment variables or .env file.")
+if not DB_URL:
+    raise ValueError("DB URL (environment variable 'DB') not found.")
 
-# 🎯 CRITICAL FIX: FORCE THE USE OF THE ROBUST 'psycopg' DRIVER 
-# This handles the scenario where the env variable is set to 'postgresql+psycopg2' or 'postgresql+asyncpg'
-if SQLALCHEMY_DATABASE_URL.startswith("postgres"):
-    # Strip any existing dialect and force the use of the 'psycopg' dialect
-    # Example: 'postgres+psycopg2://...' -> 'postgresql+psycopg://...'
-    # Example: 'postgresql://...' -> 'postgresql+psycopg://...'
+# 🎯 CRITICAL FIX: Ensure the URL uses the correct MySQL dialect.
+# We will use the 'mysql+mysqlconnector' dialect, which requires the
+# 'mysql-connector-python' package.
+
+if DB_URL.startswith("mysql://") and not DB_URL.startswith("mysql+mysqlconnector://"):
+    # Replace generic 'mysql://' with the specific driver dialect
+    DB_URL = DB_URL.replace("mysql://", "mysql+mysqlconnector://", 1)
     
-    # Standardize the protocol to 'postgresql' for consistency with SQLAlchemy 2.x conventions
-    updated_url = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    # Remove any existing dialect (+psycopg2, +asyncpg) if present
-    if "+" in updated_url:
-        base_url = updated_url.split("://", 1)
-        # Check if a dialect is specified (e.g., postgresql+psycopg2)
-        if base_url[0].count('+') > 0:
-            # Reconstruct the URL using only the base protocol and the new dialect
-            protocol_prefix = base_url[0].split('+')[0]
-            SQLALCHEMY_DATABASE_URL = f"{protocol_prefix}+psycopg://{base_url[1]}"
-        else:
-            # If it was just 'postgresql://', append the new dialect
-            SQLALCHEMY_DATABASE_URL = f"{base_url[0]}+psycopg://{base_url[1]}"
-    else:
-         # Fallback if no specific protocol (should not happen with Aiven URL)
-         SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
-            
 # SQLAlchemy Engine
-# The Aiven SSL requirement (sslmode=require) is handled, and we now use the 'psycopg' driver.
+# The URL must be formatted as: mysql+mysqlconnector://user:password@host:port/dbname
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    pool_pre_ping=True # Recommended for cloud databases
+    DB_URL,
+    pool_pre_ping=True, # Recommended for cloud databases
+    # Optional: Set encoding for consistent character handling in MySQL
+    # encoding='utf8' 
 )
 
 # Base for all models
@@ -69,7 +54,9 @@ def get_db():
     finally:
         db.close()
 
-# --- Utility DB SQLAlchemy Models (PostgreSQL compatible types) ---
+# --- Utility DB SQLAlchemy Models (Standard definitions for compatibility) ---
+# NOTE: MySQL does not enforce column size restrictions as strictly as Postgres, 
+# but these definitions are compatible.
 
 class Consumer(Base):
     __tablename__ = "consumers"
@@ -82,7 +69,8 @@ class Consumer(Base):
 class Meter(Base):
     __tablename__ = "meters"
     meter_id = Column(String(50), primary_key=True)
-    consumer_id = Column(String(50), ForeignKey("consumers.consumer_id"))
+    # Using String for ForeignKey reference, as MySQL treats it as VARCHAR
+    consumer_id = Column(String(50), ForeignKey("consumers.consumer_id")) 
     install_date = Column(DateTime)
     status = Column(String(20), default="PENDING_INSTALL")
 
@@ -118,8 +106,7 @@ class VendorAuditLog(Base):
     
 class MeterCommand(Base):
     """
-    NEW: Tracks commands issued to meters (e.g., DISCONNECT, RECONNECT).
-    Required by the /api/meter-command and /api/command-status endpoints.
+    Tracks commands issued to meters (e.g., DISCONNECT, RECONNECT).
     """
     __tablename__ = "meter_commands"
     id = Column(Integer, primary_key=True, index=True)
@@ -132,8 +119,7 @@ class MeterCommand(Base):
 
 # --- Table Creation Logic ---
 if __name__ == "__main__":
-    # This block allows you to run 'python database.py' to initialize the database schema.
-    # checkfirst=True ensures that tables are only created if they do not already exist.
-    print("Attempting to create/verify database tables...")
+    print("Attempting to create/verify MySQL database tables...")
+    # NOTE: Be sure your database ('defaultdb' or whatever you're using) exists first.
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print("Database table creation/verification complete.")
