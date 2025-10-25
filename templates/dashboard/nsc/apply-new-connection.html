@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Service Connection (NSC) Application</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: #f7f9fb;
+            padding: 30px;
+        }
+        h2 {
+            text-align: center;
+            color: #004085;
+        }
+        form {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+            color: #333;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            margin-top: 25px;
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success-box, .error-box {
+            display: none;
+            margin-top: 25px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .success-box { color: green; background: #e2fbe2; }
+        .error-box { color: red; background: #fdeaea; }
+    </style>
+</head>
+<body>
+
+<h2>Apply for New Service Connection</h2>
+
+<form id="nscForm" enctype="multipart/form-data">
+
+    <label for="name">Full Name</label>
+    <input type="text" name="name" id="name" required>
+
+    <label for="phone">Phone Number</label>
+    <input type="text" name="phone" id="phone" required pattern="[0-9]{10}" title="Enter valid 10-digit phone number">
+
+    <label for="address">Address</label>
+    <textarea name="address" id="address" rows="2" required></textarea>
+
+    <label for="category">Consumer Category</label>
+    <select name="category" id="category" required>
+        <option value="">--Select Category--</option>
+        <option value="Domestic">Domestic</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Agriculture">Agriculture</option>
+    </select>
+
+    <label for="circle">Circle</label>
+    <select name="circle" id="circle" required onchange="loadDivisions()">
+        <option value="">--Select Circle--</option>
+    </select>
+
+    <label for="division">Division</label>
+    <select name="division" id="division" required onchange="loadSubdivisions()">
+        <option value="">--Select Division--</option>
+    </select>
+
+    <label for="subdivision">Subdivision</label>
+    <select name="subdivision" id="subdivision" required onchange="loadSections()">
+        <option value="">--Select Subdivision--</option>
+    </select>
+
+    <label for="section">Section</label>
+    <select name="section" id="section" required>
+        <option value="">--Select Section--</option>
+    </select>
+
+    <label for="document">Upload Supporting Document (PDF/Image)</label>
+    <input type="file" name="document" id="document" accept=".pdf,.jpg,.jpeg,.png" required>
+
+    <button type="submit">Submit Application</button>
+
+    <div class="success-box" id="successBox"></div>
+    <div class="error-box" id="errorBox"></div>
+</form>
+
+<script>
+    let locationData = {};
+
+    window.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const res = await fetch("/api/nsc/locations");
+            if (!res.ok) throw new Error("Failed to fetch locations");
+
+            locationData = await res.json();
+
+            const circleSelect = document.getElementById("circle");
+            for (let circle in locationData) {
+                const opt = document.createElement("option");
+                opt.value = circle;
+                opt.textContent = circle;
+                circleSelect.appendChild(opt);
+            }
+        } catch (err) {
+            console.error("Error loading locations:", err);
+            alert("Failed to load location data.");
+        }
+    });
+
+    function loadDivisions() {
+        const circle = document.getElementById("circle").value;
+        const divisionSelect = document.getElementById("division");
+        divisionSelect.innerHTML = "<option value=''>--Select Division--</option>";
+
+        if (circle && locationData[circle]) {
+            Object.keys(locationData[circle]).forEach(div => {
+                const opt = document.createElement("option");
+                opt.value = div;
+                opt.textContent = div;
+                divisionSelect.appendChild(opt);
+            });
+        }
+        document.getElementById("subdivision").innerHTML = "<option value=''>--Select Subdivision--</option>";
+        document.getElementById("section").innerHTML = "<option value=''>--Select Section--</option>";
+    }
+
+    function loadSubdivisions() {
+        const circle = document.getElementById("circle").value;
+        const division = document.getElementById("division").value;
+        const subdivisionSelect = document.getElementById("subdivision");
+        subdivisionSelect.innerHTML = "<option value=''>--Select Subdivision--</option>";
+
+        if (circle && division && locationData[circle][division]) {
+            Object.keys(locationData[circle][division]).forEach(sub => {
+                const opt = document.createElement("option");
+                opt.value = sub;
+                opt.textContent = sub;
+                subdivisionSelect.appendChild(opt);
+            });
+        }
+        document.getElementById("section").innerHTML = "<option value=''>--Select Section--</option>";
+    }
+
+    function loadSections() {
+        const circle = document.getElementById("circle").value;
+        const division = document.getElementById("division").value;
+        const subdivision = document.getElementById("subdivision").value;
+        const sectionSelect = document.getElementById("section");
+        sectionSelect.innerHTML = "<option value=''>--Select Section--</option>";
+
+        if (circle && division && subdivision && locationData[circle][division][subdivision]) {
+            locationData[circle][division][subdivision].forEach(section => {
+                const opt = document.createElement("option");
+                opt.value = section;
+                opt.textContent = section;
+                sectionSelect.appendChild(opt);
+            });
+        }
+    }
+
+    document.getElementById("nscForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        const successBox = document.getElementById("successBox");
+        const errorBox = document.getElementById("errorBox");
+
+        successBox.style.display = "none";
+        errorBox.style.display = "none";
+
+        try {
+            const response = await fetch("/api/nsc/submit-nsc", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                successBox.textContent = "✅ Application submitted successfully! Reference No: " + result.reference_number;
+                successBox.style.display = "block";
+                this.reset();
+                document.getElementById("division").innerHTML = "<option value=''>--Select Division--</option>";
+                document.getElementById("subdivision").innerHTML = "<option value=''>--Select Subdivision--</option>";
+                document.getElementById("section").innerHTML = "<option value=''>--Select Section--</option>";
+            } else {
+                errorBox.textContent = "❌ " + (result.message || "Something went wrong.");
+                errorBox.style.display = "block";
+            }
+        } catch (err) {
+            errorBox.textContent = "❌ Failed to connect to server.";
+            errorBox.style.display = "block";
+        }
+    });
+</script>
+
+</body>
+</html>

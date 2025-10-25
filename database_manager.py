@@ -46,11 +46,7 @@ class DatabaseManager:
             db_config["ssl_mode"] = query_params["ssl-mode"]
 
         print("🔗 Parsed DB Config:")
-        print(f"Host: {db_config['host']}")
-        print(f"Port: {db_config['port']}")
-        print(f"User: {db_config['user']}")
-        print(f"Database: {db_config['database']}")
-        print(f"SSL Mode: {db_config['ssl_mode']}")
+        
 
         return db_config
 
@@ -72,7 +68,6 @@ class DatabaseManager:
                 port=self.db_config["port"],
             )
 
-            print("✅ Connection pool created successfully.")
             return pool
 
         except Exception as e:
@@ -196,3 +191,54 @@ class DatabaseManager:
         ORDER BY timestamp DESC
         """
         return self._run_query(query, (consumer_id,), fetch=True)
+
+    def get_all_circles(self):
+        """Return all available Circles"""
+        query = "SELECT CircleID, CircleName FROM Circles ORDER BY CircleName"
+        return self._run_query(query, fetch=True)
+
+    def get_divisions_by_circle(self, circle_id):
+        """Return all Divisions under a specific Circle"""
+        query = """
+            SELECT DivisionID, DivisionName 
+            FROM Divisions 
+            WHERE CircleID = %s 
+            ORDER BY DivisionName
+        """
+        return self._run_query(query, (circle_id,), fetch=True)
+
+    def get_subdivisions_by_division(self, division_id):
+        """Return all Subdivisions under a specific Division"""
+        query = """
+            SELECT SubdivisionID, SubdivisionName 
+            FROM Subdivisions 
+            WHERE DivisionID = %s 
+            ORDER BY SubdivisionName
+        """
+        return self._run_query(query, (division_id,), fetch=True)
+
+    def get_sections_by_subdivision(self, subdivision_id):
+        """Return all Sections under a specific Subdivision"""
+        query = """
+            SELECT SectionID, SectionName 
+            FROM Sections 
+            WHERE SubdivisionID = %s 
+            ORDER BY SectionName
+        """
+        return self._run_query(query, (subdivision_id,), fetch=True)
+
+    def get_full_hierarchy(self):
+        """Return all Circles, Divisions, Subdivisions, and Sections with full mapping."""
+        query = """
+            SELECT 
+                c.CircleID, c.CircleName,
+                d.DivisionID, d.DivisionName,
+                s.SubdivisionID, s.SubdivisionName,
+                sec.SectionID, sec.SectionName
+            FROM Circles c
+            INNER JOIN Divisions d ON c.CircleID = d.CircleID
+            INNER JOIN Subdivisions s ON d.DivisionID = s.DivisionID
+            INNER JOIN Sections sec ON s.SubdivisionID = sec.SubdivisionID
+            ORDER BY c.CircleName, d.DivisionName, s.SubdivisionName, sec.SectionName
+        """
+        return self._run_query(query, fetch=True)

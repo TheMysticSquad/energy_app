@@ -1,88 +1,107 @@
 # /workspaces/energy_app/app.py
-
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-import uvicorn
+from flask import Flask, render_template, send_from_directory
 import os
 
-
-from utility_api_server import router as api_router 
+# Import your NSC blueprint
+from nsc_app.routes import nsc_blueprint
+from nsc_app.api import api_blueprint           # JSON APIs
 
 
 # --- PATH SETUP ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-
-
-# -----------------------------
-# FastAPI App Initialization
-# -----------------------------
-app = FastAPI(title="Utility CIS Backend", version="1.0")
-
-# 1. SERVE STATIC FILES (CSS, JS)
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-
-# 2. INCLUDE API ROUTES (All your API endpoints are now under /api/v1/)
-app.include_router(api_router, prefix="/api/v1")
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # -----------------------------
-# 3. FRONTEND ROUTE (Serves index.html from templates)
+# Flask App Initialization
 # -----------------------------
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def serve_frontend():
-    """Serves the main HTML file."""
+app = Flask(__name__,
+            static_folder=os.path.join(BASE_DIR, "static"),
+            template_folder=os.path.join(BASE_DIR, "templates"))
+
+# Register your NSC Blueprint
+# All NSC URLs will be under /service/nsc/
+app.register_blueprint(nsc_blueprint, url_prefix="/service/nsc")
+app.register_blueprint(api_blueprint, url_prefix="/api/nsc")  # NOT /nsc/api
+
+# -----------------------------
+# 1. Serve Static Files (CSS, JS)
+# -----------------------------
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), filename)
+
+# -----------------------------
+# 2. Root and Dashboard Pages
+# -----------------------------
+@app.route('/')
+def serve_frontend():
+    """Serves login page."""
     try:
-        with open(os.path.join(BASE_DIR, "templates", "login.html"), "r") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: Frontend login.html not found!</h1>", status_code=500)
+        return render_template('login.html')
+    except Exception:
+        return "<h1>Error: login.html not found!</h1>", 500
 
-@app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
-async def serve_dashboard():
-    """Serves the dashboard.html after successful (simulated) login."""
+
+@app.route('/dashboard')
+def serve_dashboard():
+    """Serves dashboard page."""
     try:
-        with open(os.path.join(BASE_DIR, "templates", "dashboard.html"), "r") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: Dashboard file not found!</h1>", status_code=500)
-        
-# 🎯 CATCH-ALL ROUTE FOR MODULE PAGES (Kept from previous steps to handle module links)
-@app.get("/{module_path:path}", response_class=HTMLResponse, include_in_schema=False)
-async def serve_module_page(module_path: str):
+        return render_template('dashboard.html')
+    except Exception:
+        return "<h1>Error: dashboard.html not found!</h1>", 500
+
+# -----------------------------
+# 3. Catch-all Fallback Route
+# -----------------------------
+@app.route('/<path:module_path>')
+def serve_module_page(module_path):
     """
-    Serves a placeholder page for any path not explicitly defined 
-    (e.g., /service/new, /billing/run)
+    Serves a placeholder for undefined module routes.
     """
-    if module_path.startswith("static/"):
-        # Allow static files to be handled by app.mount
-        return 
-        
+    # Avoid catching static or NSC routes
+    if module_path.startswith(("static/", "service/nsc/")):
+        return "", 404
+
     page_title = module_path.replace("/", " > ").title()
-    
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <title>CIS - {page_title}</title>
-        <style>body{{font-family: sans-serif; padding: 30px;}} h1{{color: #007bff;}} .back{{margin-top: 20px; display: block;}}</style>
+        <style>body{{font-family:sans-serif;padding:30px;}}
+        h1{{color:#007bff;}}.back{{margin-top:20px;display:block;}}</style>
     </head>
     <body>
         <h1>{page_title} Module</h1>
-        <p>This is the landing page for the **{page_title}** process.</p>
-        <p>Example Next Step: Create a new file like <code>templates/{module_path}.html</code>.</p>
+        <p>This is the landing page for the <b>{page_title}</b> process.</p>
+        <p>Example Next Step: Create a new file like 
+        <code>templates/{module_path}.html</code>.</p>
         <a href="/dashboard" class="back">← Back to Dashboard</a>
     </body>
     </html>
     """
-    return HTMLResponse(content=html_content)
+    return html_content
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    """
+    Serve frontend pages.
+    Ignore API routes like /nsc/locations or /nsc/submit-nsc so blueprints handle them.
+    """
+    if path.startswith("nsc/"):  # Let blueprint handle these
+        return "404 Not Found", 404
+    # Otherwise, render main frontend page (example)
+    return render_template("index.html")  # or your dashboard landing page
+
+
+
+
 
 
 # -----------------------------
-# 4. Run Server
+# 4. Run the Flask App
 # -----------------------------
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
