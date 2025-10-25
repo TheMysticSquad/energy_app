@@ -64,7 +64,7 @@
   <script>
     async function loadPending() {
       try {
-        const res = await fetch("/api/nsc/pending-inspections");
+        const res = await fetch("/api/nsc/pending-verifications");
         const data = await res.json();
         const tbody = document.querySelector("#verifyTable tbody");
         tbody.innerHTML = "";
