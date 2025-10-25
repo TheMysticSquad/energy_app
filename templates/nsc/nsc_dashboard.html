@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NSC Dashboard</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #f7f9fb;
+      padding: 30px;
+    }
+    h2 {
+      text-align: center;
+      color: #004085;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      margin: 15px;
+      cursor: pointer;
+      width: 200px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2>New Service Connection (NSC)</h2>
+  <div class="container">
+    <p>Select an action below:</p>
+    <button onclick="window.location.href='/service/nsc/view-status'">View Application Status</button>
+    <button onclick="window.location.href='/service/nsc/verify'">Verify Applications</button>
+  </div>
+</body>
+</html>

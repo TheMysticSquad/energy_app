@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Application</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background-color: #f7f9fb; padding: 30px; }
+    h2 { text-align: center; color: #004085; }
+    form { max-width: 700px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    label { font-weight: bold; display: block; margin-top: 15px; color: #333; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; }
+    button { margin-top: 25px; width: 100%; background-color: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+  </style>
+</head>
+<body>
+  <h2>Verify NSC Application</h2>
+  <form id="verifyForm">
+    <div id="appDetails"></div>
+
+    <label for="verified_load">Verified Load (kW)</label>
+    <input type="number" step="0.1" id="verified_load" required>
+
+    <label for="verified_category">Verified Category</label>
+    <select id="verified_category" required>
+      <option value="">--Select--</option>
+      <option value="Domestic">Domestic</option>
+      <option value="Commercial">Commercial</option>
+      <option value="Industrial">Industrial</option>
+      <option value="Agriculture">Agriculture</option>
+    </select>
+
+    <label for="remarks">Remarks</label>
+    <textarea id="remarks" rows="2"></textarea>
+
+    <button type="submit">Verify & Send to AMISP</button>
+  </form>
+
+  <script>
+    const ref = window.location.pathname.split('/').pop();
+
+    async function loadApp() {
+      const res = await fetch(`/api/nsc/application-details/${ref}`);
+      const data = await res.json();
+      document.getElementById("appDetails").innerHTML = `
+        <p><b>Reference No:</b> ${data.reference_number}</p>
+        <p><b>Name:</b> ${data.name}</p>
+        <p><b>Phone:</b> ${data.phone}</p>
+        <p><b>Address:</b> ${data.address}</p>
+        <p><b>Applied Category:</b> ${data.category}</p>
+      `;
+    }
+
+    document.getElementById("verifyForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const payload = {
+        reference_number: ref,
+        verified_load: document.getElementById("verified_load").value,
+        verified_category: document.getElementById("verified_category").value,
+        remarks: document.getElementById("remarks").value
+      };
+      const res = await fetch("/api/nsc/submit-inspection", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      alert(result.message);
+      if (result.success) window.location.href = '/nsc/verify';
+    });
+
+    loadApp();
+  </script>
+</body>
+</html>

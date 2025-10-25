@@ -83,20 +83,6 @@ def serve_module_page(module_path):
     """
     return html_content
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def catch_all(path):
-    """
-    Serve frontend pages.
-    Ignore API routes like /nsc/locations or /nsc/submit-nsc so blueprints handle them.
-    """
-    if path.startswith("nsc/"):  # Let blueprint handle these
-        return "404 Not Found", 404
-    # Otherwise, render main frontend page (example)
-    return render_template("index.html")  # or your dashboard landing page
-
-
-
 
 
 
